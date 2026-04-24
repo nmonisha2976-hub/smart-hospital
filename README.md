@@ -1,4 +1,4 @@
-# Smart Hospital Management System
+# Smart Patient Appointment & Record System
 
 ## 📌 Description
 A web-based application to manage hospital appointments, patient health records, and doctor interactions.
