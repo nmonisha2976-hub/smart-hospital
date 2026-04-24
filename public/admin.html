@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="navbar">
+  <div class="logo">Admin Panel</div>
+</div>
+
+<div class="container">
+
+  <h2>Admin Dashboard</h2>
+
+  <!-- SUMMARY -->
+  <div id="summary"></div>
+
+  <!-- FILTER BUTTONS -->
+  <div class="filters">
+    <button onclick="filterStatus('All')">All</button>
+    <button onclick="filterStatus('Pending')">Pending</button>
+    <button onclick="filterStatus('Accepted')">Accepted</button>
+    <button onclick="filterStatus('Rejected')">Rejected</button>
+  </div>
+
+  <!-- LIST -->
+  <div id="list" class="grid"></div>
+
+</div>
+
+<script>
+
+let allData = [];
+
+/* LOAD DATA */
+fetch("/appointments")
+.then(res => res.json())
+.then(data => {
+  allData = data;
+  showSummary(data);
+  showData(data);
+});
+
+/* SHOW SUMMARY */
+function showSummary(data){
+  let total = data.length;
+  let pending = data.filter(a => a.status === "Pending").length;
+  let accepted = data.filter(a => a.status === "Accepted").length;
+  let rejected = data.filter(a => a.status === "Rejected").length;
+
+  document.getElementById("summary").innerHTML = `
+    <div class="card">Total: ${total}</div>
+    <div class="card">Pending: ${pending}</div>
+    <div class="card">Accepted: ${accepted}</div>
+    <div class="card">Rejected: ${rejected}</div>
+  `;
+}
+
+/* SHOW LIST */
+function showData(data){
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  data.forEach(a => {
+
+    let urgencyColor = a.urgency === "Emergency" ? "red" : "green";
+
+    let div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <h3>${a.patient_name}</h3>
+
+      <p><b>Doctor:</b> ${a.doctor}</p>
+
+      <p><b>Status:</b> ${a.status}</p>
+
+      <p><b>Urgency:</b> 
+        <span style="color:${urgencyColor}">
+          ${a.urgency || "Normal"}
+        </span>
+      </p>
+
+      <p><b>Details:</b> ${a.details || "No details"}</p>
+
+      <p><b>Doctor Message:</b> ${a.doctor_msg || "None"}</p>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+/* FILTER FUNCTION */
+function filterStatus(status){
+  if(status === "All"){
+    showData(allData);
+  } else {
+    let filtered = allData.filter(a => a.status === status);
+    showData(filtered);
+  }
+}
+
+</script>
+
+</body>
+</html>

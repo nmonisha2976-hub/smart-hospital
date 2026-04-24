@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hospital Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>🏥 MediCare+ Hospital Dashboard</h1>
+    <p>Doctors • Appointments • Live Statistics</p>
+  </div>
+
+  <!-- BUTTONS -->
+  <div class="form-section">
+    <button class="btn btn-primary" onclick="loadDashboard()">Dashboard</button>
+    <button class="btn btn-primary" onclick="loadDoctors()">Doctors</button>
+    <button class="btn btn-primary" onclick="loadAppointments()">Appointments</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content"></div>
+
+</div>
+
+<script>
+
+/* =========================
+   DASHBOARD
+========================= */
+async function loadDashboard(){
+  try {
+    const docRes = await fetch("/doctors");
+    const doctors = await docRes.json();
+
+    const apptRes = await fetch("/appointments");
+    const appointments = await apptRes.json();
+
+    const online = appointments.filter(a => (a.type || "online") === "online").length;
+    const offline = appointments.filter(a => a.type === "offline").length;
+
+    document.getElementById("content").innerHTML = `
+      <div class="grid">
+
+        <div class="card">
+          <h2>🏥 Hospital</h2>
+          <p>MediCare+ Multi Speciality</p>
+        </div>
+
+        <div class="card">
+          <h2>👨‍⚕️ Doctors</h2>
+          <p>${doctors.length}</p>
+        </div>
+
+        <div class="card">
+          <h2>🟢 Online</h2>
+          <p>${online}</p>
+        </div>
+
+        <div class="card">
+          <h2>🔵 Offline</h2>
+          <p>${offline}</p>
+        </div>
+
+      </div>
+    `;
+
+  } catch(err){
+    console.log("Dashboard error:", err);
+    document.getElementById("content").innerHTML =
+      "<p>Error loading dashboard</p>";
+  }
+}
+
+/* =========================
+   DOCTORS LIST
+========================= */
+async function loadDoctors(){
+  try {
+    const res = await fetch("/doctors");
+
+    if(!res.ok){
+      throw new Error("Doctors API not found");
+    }
+
+    const data = await res.json();
+
+    let html = `<h2>👨‍⚕️ Doctors</h2>`;
+
+    if(data.length === 0){
+      html += `<p>No doctors available</p>`;
+    }
+
+    data.forEach(d => {
+      html += `
+        <div class="card">
+          <h3>${d.name}</h3>
+          <p><b>Specialization:</b> ${d.specialization || "General"}</p>
+        </div>
+      `;
+    });
+
+    document.getElementById("content").innerHTML = html;
+
+  } catch(err){
+    console.log("Doctor error:", err);
+
+    document.getElementById("content").innerHTML = `
+      <div class="card">
+        <p style="color:red;">❌ Cannot load doctors</p>
+        <p>Check backend: /doctors API</p>
+      </div>
+    `;
+  }
+}
+
+/* =========================
+   APPOINTMENTS (SEGREGATED)
+========================= */
+async function loadAppointments(){
+
+  try {
+    const res = await fetch("/appointments");
+    const data = await res.json();
+
+    const online = data.filter(a => (a.type || "online") === "online");
+    const offline = data.filter(a => a.type === "offline");
+
+    function renderGroup(title, list){
+
+      if(list.length === 0){
+        return `<p>No ${title} appointments</p>`;
+      }
+
+      let html = `<h3>${title} (${list.length})</h3><div class="grid">`;
+
+      list.forEach(a => {
+
+        html += `
+          <div class="card">
+
+            <h4>${a.patient_name}</h4>
+
+            <p><b>Doctor:</b> ${a.doctor}</p>
+
+            <p>
+              <span class="badge ${a.status.toLowerCase()}">
+                ${a.status}
+              </span>
+
+              <span class="badge ${(a.type || "online")}">
+                ${(a.type || "online")}
+              </span>
+            </p>
+
+            ${a.details ? `<p><small>${a.details}</small></p>` : ""}
+
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      return html;
+    }
+
+    let html = `<h2>📋 Appointments Dashboard</h2>`;
+
+    html += `<div class="form-section"><h3>🟢 Online</h3></div>`;
+    html += renderGroup("Pending", online.filter(a => a.status === "Pending"));
+    html += renderGroup("Accepted", online.filter(a => a.status === "Accepted"));
+    html += renderGroup("Rejected", online.filter(a => a.status === "Rejected"));
+
+    html += `<div class="form-section"><h3>🔵 Offline</h3></div>`;
+    html += renderGroup("Pending", offline.filter(a => a.status === "Pending"));
+    html += renderGroup("Accepted", offline.filter(a => a.status === "Accepted"));
+    html += renderGroup("Rejected", offline.filter(a => a.status === "Rejected"));
+
+    document.getElementById("content").innerHTML = html;
+
+  } catch(err){
+    document.getElementById("content").innerHTML =
+      "<p>Error loading appointments</p>";
+  }
+}
+/* INIT */
+loadDashboard();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Book Appointment</h2>
+
+<input id="doctor" placeholder="Doctor Name">
+<textarea id="symptoms" placeholder="Symptoms"></textarea>
+<textarea id="details" placeholder="Extra details"></textarea>
+
+<button onclick="book()">Book Now</button>
+
+</div>
+
+<script>
+
+/* ================= AUTO-FILL DOCTOR ================= */
+
+// from Find Doctor page
+const selectedDoctor = localStorage.getItem("selectedDoctor");
+
+// from Health suggestion
+const suggestedDoctors = JSON.parse(localStorage.getItem("suggestedDoctors") || "[]");
+
+// priority: selected doctor > suggested doctor
+if(selectedDoctor){
+  document.getElementById("doctor").value = selectedDoctor;
+} 
+else if(suggestedDoctors.length > 0){
+  document.getElementById("doctor").value = suggestedDoctors[0];
+}
+
+/* ================= BOOK FUNCTION ================= */
+
+function book(){
+
+  const userName = localStorage.getItem("userName");
+
+  if(!userName){
+    alert("Please login first");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const doctorVal = document.getElementById("doctor").value.trim();
+  const symptomsVal = document.getElementById("symptoms").value.trim();
+  const detailsVal = document.getElementById("details").value.trim();
+
+  // ✅ validation (important)
+  if(!doctorVal){
+    alert("Doctor name required");
+    return;
+  }
+
+  if(!symptomsVal){
+    alert("Symptoms are required");
+    return;
+  }
+
+  const data = {
+    name: userName,
+    doctor: doctorVal,
+    symptoms: symptomsVal,
+    details: detailsVal
+  };
+
+  console.log("BOOKING DATA:", data); // debug
+
+  fetch("http://localhost:3000/book", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(res => {
+
+    if(res.success){
+      alert("Appointment Booked Successfully!");
+
+      // ✅ clear temp data
+      localStorage.removeItem("selectedDoctor");
+
+      window.location.href = "patient.html";
+    } else {
+      alert("Booking failed");
+    }
+
+  })
+  .catch(err => {
+    console.log(err);
+    alert("Server error");
+  });
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Patient Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="navbar">
+  <div class="logo">Smart Patient Appointment & Record System</div>
+  <div>
+    <span id="user"></span>
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Welcome, <span id="username"></span></h2>
+    <p>Email: <span id="email"></span></p>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <h3>Find Doctors</h3>
+      <button onclick="go('find_doctor.html')">Open</button>
+    </div>
+
+    <div class="card">
+      <h3>Book Appointment</h3>
+      <!-- ✅ goes to health form first -->
+      <button onclick="go('patient_ob.html')">Book</button>
+    </div>
+
+    <div class="card">
+      <h3>Appointments</h3>
+      <button onclick="loadAppointments()">View</button>
+    </div>
+
+    <div class="card">
+      <h3>Health Report</h3>
+      <button onclick="downloadPDF()">Download</button>
+    </div>
+
+  </div>
+
+  <div id="data"></div>
+
+</div>
+
+<script>
+
+/* ================= USER DATA ================= */
+
+const userName = localStorage.getItem("userName");
+const userEmail = localStorage.getItem("userEmail");
+
+// ✅ Safety check (important for Google login)
+if(!userName){
+  alert("Please login first");
+  window.location.href = "index.html";
+}
+
+// show user
+document.getElementById("username").innerText = userName || "User";
+document.getElementById("email").innerText = userEmail || "";
+document.getElementById("user").innerText = userName || "";
+
+/* ================= NAVIGATION ================= */
+function go(page){
+  window.location.href = page;
+}
+
+/* ================= APPOINTMENTS ================= */
+function loadAppointments(){
+
+  const dataDiv = document.getElementById("data");
+  dataDiv.innerHTML = "<p>Loading...</p>";
+
+  fetch("http://localhost:3000/appointments")
+  .then(res => res.json())
+  .then(data => {
+
+    console.log("ALL DATA:", data);
+    console.log("USER:", userName);
+
+    // ✅ STRICT MATCH FIX
+    const myData = data.filter(a =>
+      (a.patient_name || "").trim().toLowerCase() ===
+      (userName || "").trim().toLowerCase()
+    );
+
+    if(myData.length === 0){
+      dataDiv.innerHTML = "<p>No appointments found</p>";
+      return;
+    }
+
+    let html = "<h3>Your Appointments</h3>";
+
+    myData.forEach(a => {
+      html += `
+        <div class="card">
+          <b>Doctor:</b> ${a.doctor}<br>
+          <b>Status:</b> ${a.status}<br>
+          <b>Urgency:</b> ${a.urgency}<br>
+          <small>${a.details || ""}</small>
+        </div>
+      `;
+    });
+
+    dataDiv.innerHTML = html;
+  })
+  .catch(err => {
+    console.log(err);
+    dataDiv.innerHTML = "<p>Error loading appointments</p>";
+  });
+}
+
+/* ================= PDF DOWNLOAD ================= */
+function downloadPDF(){
+
+  // ✅ Try fetching latest from DB (better than localStorage)
+  fetch("http://localhost:3000/latest-report?user=" + userName)
+  .then(res => res.json())
+  .then(data => {
+
+    if(!data.file){
+      alert("No report found");
+      return;
+    }
+
+    window.open("/uploads/" + data.file, "_blank");
+  })
+  .catch(() => {
+    alert("Error fetching report");
+  });
+}
+
+/* ================= LOGOUT ================= */
+function logout(){
+  localStorage.clear();
+  window.location.href = "index.html";
+}
+
+</script>
+
+</body>
+</html>

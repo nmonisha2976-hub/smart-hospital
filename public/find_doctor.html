@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Find Doctors</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="navbar">
+  <div class="logo">MediCare+</div>
+  <div class="nav">
+    <a href="index.html">Dashboard</a>
+    <a href="find-doctor.html">Find Doctors</a>
+    <a href="doctor.html">Doctor Portal</a>
+  </div>
+</div>
+
+<div class="search-box">
+  <h2>Find Your Doctor</h2>
+  <input id="search" placeholder="Search doctors..." onkeyup="filterDoctors()">
+</div>
+
+<div class="filters">
+  <button onclick="filterType('all')">All</button>
+  <button onclick="filterType('Cardiology')">Cardiology</button>
+  <button onclick="filterType('Dental')">Dental</button>
+  <button onclick="filterType('Dermatology')">Dermatology</button>
+</div>
+
+<div class="grid" id="doctorList"></div>
+
+<script>
+
+/* DOCTOR DATA */
+let doctors = [
+  {name:"Dr. Priya Sharma", type:"Cardiology", rating:4.9},
+  {name:"Dr. James Wilson", type:"Dental", rating:4.7},
+  {name:"Dr. Emily Davis", type:"Dermatology", rating:4.8},
+  {name:"Dr. Michael Brown", type:"Cardiology", rating:4.6}
+];
+
+/* SHOW DOCTORS */
+function showDoctors(list){
+  let container = document.getElementById("doctorList");
+  container.innerHTML = "";
+
+  list.forEach(d => {
+    container.innerHTML += `
+      <div class="card">
+        <h3>${d.name}</h3>
+        <p>${d.type}</p>
+        <p>⭐ ${d.rating}</p>
+
+        <button class="btn btn-primary" onclick="bookDoctor('${d.name}')">
+          Book Now
+        </button>
+      </div>
+    `;
+  });
+}
+
+/* SEARCH */
+function filterDoctors(){
+  let value = document.getElementById("search").value.toLowerCase();
+
+  let filtered = doctors.filter(d =>
+    d.name.toLowerCase().includes(value) ||
+    d.type.toLowerCase().includes(value)
+  );
+
+  showDoctors(filtered);
+}
+
+/* FILTER */
+function filterType(type){
+  if(type === "all"){
+    showDoctors(doctors);
+  } else {
+    let filtered = doctors.filter(d => d.type === type);
+    showDoctors(filtered);
+  }
+}
+
+/* =========================
+   FIXED BOOK FUNCTION (MAIN FIX)
+========================= */
+function bookDoctor(doctorName){
+
+  const userName = localStorage.getItem("userName");
+
+  if(!userName){
+    alert("Please login first");
+    return;
+  }
+
+  // ✅ store selected doctor
+  localStorage.setItem("selectedDoctor", doctorName);
+
+  // ✅ go to booking page (NO POPUP)
+  window.location.href = "booking.html";
+}
+/* INIT */
+showDoctors(doctors);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Doctor Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+
+  <style>
+    body{
+      display:flex;
+    }
+
+    .sidebar{
+      width:230px;
+      background: linear-gradient(180deg, #56555d, #9ea6b9);
+      color:white;
+      height:100vh;
+      padding:20px;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.08);
+    }
+
+    .sidebar h2{
+      margin-bottom:25px;
+    }
+
+    .sidebar button{
+      width:100%;
+      padding:10px;
+      margin:8px 0;
+      border:none;
+      background:hsl(0, 0%, 43%);
+      color:white;
+      border-radius:6px;
+      cursor:pointer;
+    }
+
+    .sidebar button:hover{
+      background:#3a3f44;
+    }
+
+    .main{
+      flex:1;
+      padding:20px;
+    }
+
+    .profile{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    .avatar{
+      width:45px;
+      height:45px;
+      border-radius:50%;
+    }
+
+    .box{
+      background:#f1f5ff;
+      padding:10px;
+      border-left:4px solid #2c7be5;
+      border-radius:6px;
+      margin-top:10px;
+    }
+
+    textarea{
+      margin-top:10px;
+    }
+  </style>
+
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>Doctor Panel</h2>
+
+  <button onclick="loadAppointments('Pending')">Pending</button>
+  <button onclick="loadAppointments('Accepted')">Accepted</button>
+  <button onclick="loadAppointments('Rejected')">Rejected</button>
+
+  <button onclick="loadOnline()">Online</button>
+  <button onclick="loadOffline()">Offline</button>
+
+  <button onclick="showProfile()">Profile</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="doctor-header">
+    <h3 id="docName"></h3>
+  </div>
+
+  <div id="content"></div>
+
+</div>
+
+<script>
+
+/* ================= FORMAT DOCTOR NAME ================= */
+function formatDoctorName(name) {
+  if (!name) return "";
+
+  if (name.startsWith("Dr.")) return name;
+
+  const parts = name.split(" ");
+
+  if (parts.length >= 2) {
+    return `Dr. ${parts[1]}. ${parts[0]}`;
+  }
+
+  return `Dr. ${name}`;
+}
+
+/* ================= DOCTOR NAME ================= */
+const doctorName = (localStorage.getItem("doctorName") || "Monisha N").trim();
+
+/* DISPLAY FORMATTED NAME */
+document.getElementById("docName").innerText = formatDoctorName(doctorName);
+
+/* ================= PROFILE ================= */
+function showProfile(){
+  document.getElementById("content").innerHTML = `
+    <h2>Profile</h2>
+    <p><b>Name:</b> ${formatDoctorName(doctorName)}</p>
+    <p><b>Specialization:</b> General Medicine</p>
+  `;
+}
+
+/* ================= LOAD BY STATUS ================= */
+async function loadAppointments(status){
+
+  const res = await fetch("/doctor/" + encodeURIComponent(doctorName));
+  const data = await res.json();
+
+  const filtered = data.filter(a =>
+    (a.status || "").toLowerCase() === status.toLowerCase()
+  );
+
+  renderAppointments(filtered, status + " Appointments");
+}
+
+/* ================= ONLINE ================= */
+async function loadOnline(){
+
+  const res = await fetch("/doctor/" + encodeURIComponent(doctorName));
+  const data = await res.json();
+
+  const online = data.filter(a =>
+    (a.type || "").toLowerCase() === "online"
+  );
+
+  renderAppointments(online, "Online Appointments");
+}
+
+/* ================= OFFLINE ================= */
+async function loadOffline(){
+
+  const res = await fetch("/doctor/" + encodeURIComponent(doctorName));
+  const data = await res.json();
+
+  const offline = data.filter(a =>
+    (a.type || "").toLowerCase() === "offline"
+  );
+
+  renderAppointments(offline, "Offline Appointments");
+}
+
+/* ================= RENDER ================= */
+function renderAppointments(data, title){
+
+  let html = `<h2>${title}</h2>`;
+
+  if(!data || data.length === 0){
+    html += "<p>No appointments found</p>";
+  }
+
+  data.forEach(a => {
+
+    html += `
+      <div class="card">
+
+        <h3>${a.patient_name}</h3>
+
+        <p><b>Status:</b> ${a.status}</p>
+        <p><b>Type:</b> ${a.type || "online"}</p>
+        <p><b>Details:</b> ${a.details || "N/A"}</p>
+
+        <span class="badge">${a.urgency}</span>
+
+        ${a.status === "Accepted" ? `
+          <div class="box">
+            <b>Prescription:</b> ${a.doctor_msg || "Not given"}
+          </div>
+        ` : ""}
+
+        ${a.status === "Rejected" ? `
+          <div class="box">
+            <b>Reason:</b> ${a.doctor_msg || "Not given"}
+          </div>
+        ` : ""}
+
+        ${a.status === "Pending" ? `
+          <br>
+
+          <button class="btn btn-success" onclick="accept(${a.id})">Accept</button>
+          <button class="btn btn-danger" onclick="reject(${a.id})">Reject</button>
+
+          <textarea id="p${a.id}" placeholder="Write prescription or reason..."></textarea>
+
+          <button class="btn btn-primary"
+            onclick="sendPrescription(${a.id}, '${a.patient_name}')">
+            Submit
+          </button>
+        ` : ""}
+
+      </div>
+    `;
+  });
+
+  document.getElementById("content").innerHTML = html;
+}
+
+/* ================= ACCEPT ================= */
+async function accept(id){
+  await fetch("/accept/" + id, {method:"POST"});
+  loadAppointments("Pending");
+}
+
+/* ================= REJECT ================= */
+async function reject(id){
+  const reason = prompt("Enter rejection reason:");
+
+  await fetch("/reject/" + id, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ reason })
+  });
+
+  loadAppointments("Pending");
+}
+
+/* ================= PRESCRIPTION ================= */
+async function sendPrescription(id, patient){
+
+  const text = document.getElementById("p"+id).value;
+
+  if(!text){
+    alert("Please write something");
+    return;
+  }
+
+  await fetch("/prescription", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      patient_name: patient,
+      doctor: doctorName,
+      prescription: text
+    })
+  });
+
+  alert("Submitted successfully!");
+  loadAppointments("Pending");
+}
+
+/* INIT */
+loadAppointments("Pending");
+
+</script>
+
+</body>
+</html>

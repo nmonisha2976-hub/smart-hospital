@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Health Details</h2>
+
+<input list="ageList" id="age" placeholder="Enter or select age">
+
+<datalist id="ageList">
+  <option value="18-25">
+  <option value="26-40">
+  <option value="40+">
+</datalist>
+
+<input list="genderList" id="gender" placeholder="Enter or select gender">
+
+<datalist id="genderList">
+  <option value="Male">
+  <option value="Female">
+</datalist>
+
+<input list="heightList" id="height" placeholder="Enter or select height">
+
+<datalist id="heightList">
+  <option value="150 cm">
+  <option value="160 cm">
+  <option value="170 cm">
+</datalist>
+
+<input list="weightList" id="weight" placeholder="Enter or select weight">
+
+<datalist id="weightList">
+  <option value="50 kg">
+  <option value="60 kg">
+  <option value="70 kg">
+</datalist>
+
+<select id="blood">
+  <option>A+</option>
+  <option>B+</option>
+  <option>O+</option>
+  <option>AB+</option>
+</select>
+
+<input list="symptomList" id="symptoms" placeholder="Enter or select symptoms">
+
+<datalist id="symptomList">
+  <option value="Fever">
+  <option value="Headache">
+  <option value="Chest Pain">
+  <option value="Skin Problem">
+  <option value="Tooth Pain">
+</datalist>
+
+<textarea id="description" placeholder="Describe your condition"></textarea>
+
+<input type="file" id="file">
+
+<button onclick="submitHealth()">Generate Report & Continue</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+/* ✅ set name correctly */
+document.getElementById("name").value =
+  localStorage.getItem("userName") || "Guest User";
+
+/* ✅ main function */
+async function submitHealth() {
+
+  try {
+
+    // ✅ get elements properly
+    const age = document.getElementById("age");
+    const gender = document.getElementById("gender");
+    const height = document.getElementById("height");
+    const weight = document.getElementById("weight");
+    const blood = document.getElementById("blood");
+    const symptoms = document.getElementById("symptoms");
+    const description = document.getElementById("description");
+
+    const data = {
+      name: localStorage.getItem("userName") || "Guest User",
+      age: age.value,
+      gender: gender.value,
+      height: height.value,
+      weight: weight.value,
+      blood: blood.value,
+      symptoms: symptoms.value,
+      description: description.value
+    };
+
+    const res = await fetch("/save-health", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+
+    if (!result.file) {
+      alert("PDF generation failed");
+      return;
+    }
+
+    document.getElementById("result").innerHTML =
+      `<a href="/uploads/${result.file}" target="_blank">Download Report</a>`;
+
+    setTimeout(() => {
+      window.location.href = "booking.html";
+    }, 1500);
+
+  } catch (err) {
+    console.log(err);
+    alert("Error occurred while submitting");
+  }
+}
+</script>
+
+</body>
+</html>
